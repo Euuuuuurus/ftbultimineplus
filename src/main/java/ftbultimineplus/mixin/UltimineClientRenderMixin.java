@@ -1,11 +1,10 @@
 package ftbultimineplus.mixin;
 
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.ftb.mods.ftbultimine.client.FTBUltimineClient;
 import ftbultimineplus.config.FTBUltiminePlusClientConfig;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 
 /**
  * Client-side rendering hook: makes the translucent preview outline alpha configurable
@@ -14,21 +13,21 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
  *
  * In {@code renderInGame(PoseStack)} the outline is drawn as two passes: an opaque white pass
  * ({@code color(255,255,255,255)}) and a translucent pass ({@code color(255,255,255,10)}).
- * This modifies only the second {@code VertexConsumer#color} call site (ordinal 1).
+ * This replaces the two occurrences of the literal constant 10 (the translucent pass alpha).
+ *
+ * IMPORTANT: this targets a constant, not a method call. FTB Ultimine's published jar runs in the
+ * SRG-named production environment where {@code VertexConsumer.color} is {@code m_6122_}, so a
+ * method-targeted injection (remap=false) would fail there; a constant match is name-independent
+ * and works in both the dev (official names) and production (SRG) environments.
  *
  * All targets are mod classes (never obfuscated on 1.17+), so remap = false and no refmap is needed.
  */
 @Mixin(value = FTBUltimineClient.class, remap = false)
 public abstract class UltimineClientRenderMixin {
-    @ModifyArg(method = "renderInGame",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lcom/mojang/blaze3d/vertex/VertexConsumer;color(IIII)Lcom/mojang/blaze3d/vertex/VertexConsumer;",
-                    ordinal = 1
-            ),
-            index = 3,
+    @ModifyConstant(method = "renderInGame",
+            constant = @Constant(intValue = 10),
             remap = false)
-    private int ftbultimineplus$previewLineAlpha(int alpha) {
+    private int ftbultimineplus$previewLineAlpha(int value) {
         return FTBUltiminePlusClientConfig.previewLineAlpha.get();
     }
 }

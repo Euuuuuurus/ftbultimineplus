@@ -30,7 +30,7 @@ $env:JAVA_TOOL_OPTIONS="--patch-module=jdk.zipfs=D:/agent/FTBUltimine/tools/zipf
 .\gradlew.bat --offline build
 ```
 
-产物：`build/libs/ftbultimineplus-1.18.2-forge-1.0.0-1.18.2.jar`
+产物：`build/libs/ftbultimineplus-1.18.2-forge-1.0.1-1.18.2.jar`
 
 ## 运行验证
 
