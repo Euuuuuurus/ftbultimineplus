@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "ftbultimineplus.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "UltimineRightClickMixin"
+  ],
+  "client": [
+    "UltimineClientRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

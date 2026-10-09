@@ -1,0 +1,41 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+license="MIT"
+issueTrackerURL="https://github.com/"
+
+[[mods]]
+modId="ftbultimineplus"
+version="${file.jarVersion}"
+displayName="FTB Ultimine Plus"
+authors="DSH"
+description='''Backport of newer FTB Ultimine features to Minecraft 1.18.2 Forge:
+- Right-click with the Ultimine key held + axe to strip logs / scrape copper in bulk
+- Right-click with the Ultimine key held + shovel to flatten grass/dirt in bulk
+- Large (3x3) tunnel shape
+- Configurable preview outline alpha
+Works on top of FTB Ultimine 1802.3.x without modifying its jar.'''
+
+[[dependencies.ftbultimineplus]]
+    modId="forge"
+    mandatory=true
+    versionRange="[40.2.4,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.ftbultimineplus]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.18.2,1.19)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.ftbultimineplus]]
+    modId="ftbultimine"
+    mandatory=true
+    versionRange="[1802.3.4,)"
+    ordering="AFTER"
+    side="BOTH"
+[[dependencies.ftbultimineplus]]
+    modId="ftblibrary"
+    mandatory=true
+    versionRange="[1802.3.6,)"
+    ordering="AFTER"
+    side="BOTH"

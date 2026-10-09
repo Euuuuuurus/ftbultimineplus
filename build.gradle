@@ -1,0 +1,127 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'idea'
+
+version = mod_version
+group = mod_group_id
+archivesBaseName = "${mod_id}-${minecraft_version}-forge"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    // Mojang official mappings are the runtime names on Forge 1.17+, so mixins targeting mod classes
+    // (FTB Ultimine) with remap=false need no refmap.
+    mappings channel: 'official', version: minecraft_version
+
+    def srgToOfficial = file('build/createSrgToMcp/output.srg').absolutePath
+    def gameTmpDir = file('tmp').absolutePath
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'forge.enabledGameTestNamespaces', mod_id
+
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', srgToOfficial
+
+            jvmArg "-Djava.io.tmpdir=${gameTmpDir}"
+
+            mods {
+                ftbultimineplus {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run/server')
+
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', srgToOfficial
+
+            jvmArg "-Djava.io.tmpdir=${gameTmpDir}"
+
+            mods {
+                ftbultimineplus {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+// In a production jar Forge reads the "MixinConfigs" attribute from META-INF/MANIFEST.MF (set on the
+// jar task below). In a dev run the mod is loaded from build/resources/main, which has no manifest,
+// so Forge would never register the mixin config. Emit one into the dev resource output only - the
+// jar task writes its own manifest, so the shipped artifact is unaffected.
+def devManifest = tasks.register('devManifest') {
+    def outDir = layout.buildDirectory.dir('resources/main/META-INF')
+    def configName = "mixins.${mod_id}.json"
+    outputs.dir(outDir)
+    inputs.property('configName', configName)
+    doLast {
+        def f = outDir.get().file('MANIFEST.MF').asFile
+        f.parentFile.mkdirs()
+        f.setText("Manifest-Version: 1.0\nMixinConfigs: ${configName}\n\n", 'UTF-8')
+    }
+}
+
+processResources.finalizedBy(devManifest)
+
+repositories {
+    // FTB Mods / Architectury - the .gradle-home module cache already holds the pinned versions,
+    // so these URLs are only needed for the first offline build fallback.
+    maven { url = 'https://maven.ftb.dev/releases' }
+    maven { url = 'https://maven.architectury.dev' }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // FTB Ultimine - the mod we hook into. Its POM drags in ftb-ranks, which in turn forces newer
+    // (and here unwanted) ftb-library / architectury versions, so exclude them and pin the rest of
+    // the stack explicitly. fg.deobf() is required: all three are published against SRG names.
+    implementation(fg.deobf("dev.ftb.mods:ftb-ultimine-forge:$ftb_ultimine_version")) {
+        exclude group: 'dev.ftb.mods', module: 'ftb-ranks-forge'
+        exclude group: 'dev.ftb.mods', module: 'ftb-library-forge'
+        exclude group: 'dev.architectury', module: 'architectury-forge'
+    }
+    implementation fg.deobf("dev.ftb.mods:ftb-library-forge:$ftb_library_version")
+    implementation fg.deobf("dev.architectury:architectury-forge:$architectury_version")
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : "1",
+                'Implementation-Title'    : project.name,
+                'Implementation-Version' : project.version,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'MixinConfigs'            : 'mixins.ftbultimineplus.json'
+        ])
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+jar.finalizedBy('reobfJar')
